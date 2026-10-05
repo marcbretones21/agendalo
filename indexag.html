@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0E5A6B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Agéndalo Ya">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-180.png">
+<title>Agéndalo Ya, demo de reservas por chat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF2F4;--surface:#FFFFFF;--surface-2:#F5F8F9;--ink:#12283A;--ink-2:#516473;--line:#D8E0E5;
+  --brand:#0E5A6B;--brand-ink:#FFFFFF;--new:#C98A06;--new-bg:#FFF3D1;
+  --chat-bg:#E3EAE6;--bubble-in:#FFFFFF;--bubble-out:#D3F2CB;--chat-head:#0F4F45;--chat-head-ink:#FFFFFF;
+  --p1:#2A8C82;--p2:#5B6CC4;--p3:#C0506A;--closed:#E6ECEF;--paid:#B4441F;--free:#1F7A4D;
+  --display:"Bricolage Grotesque","Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0C151B;--surface:#14212A;--surface-2:#1A2A35;--ink:#E8EEF2;--ink-2:#9FB0BD;--line:#2A3B47;
+    --brand:#4FB6C6;--brand-ink:#06222A;--new:#F2B93B;--new-bg:#3A2E0E;
+    --chat-bg:#0E1A1F;--bubble-in:#1C2B34;--bubble-out:#14503B;--chat-head:#123F38;--chat-head-ink:#E8EEF2;
+    --closed:#101C23;--paid:#F08A66;--free:#5FCB94;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0C151B;--surface:#14212A;--surface-2:#1A2A35;--ink:#E8EEF2;--ink-2:#9FB0BD;--line:#2A3B47;
+  --brand:#4FB6C6;--brand-ink:#06222A;--new:#F2B93B;--new-bg:#3A2E0E;
+  --chat-bg:#0E1A1F;--bubble-in:#1C2B34;--bubble-out:#14503B;--chat-head:#123F38;--chat-head-ink:#E8EEF2;
+  --closed:#101C23;--paid:#F08A66;--free:#5FCB94;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;display:flex;flex-direction:column;overflow:hidden}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+
+/* Barra superior */
+.top{display:flex;align-items:center;gap:14px;padding:10px 18px;border-bottom:1px solid var(--line);background:var(--surface);flex:none}
+.brand{font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:-.02em;white-space:nowrap}
+.sim{font-size:13px;color:var(--ink-2);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ghost{background:none;border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-weight:600;font-size:13px}
+.ghost:hover{border-color:var(--ink-2)}
+.viewswitch{display:none;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex:none}
+.viewswitch button{background:none;border:0;padding:7px 14px;font-weight:600;font-size:13px}
+.viewswitch button[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink)}
+
+/* Escenario */
+.stage{flex:1;min-height:0;display:grid;grid-template-columns:400px 1fr;gap:18px;padding:18px}
+.client{min-height:0;display:flex;flex-direction:column;align-items:center;gap:8px}
+.caption{font-size:13px;color:var(--ink-2);margin:0;text-align:center}
+
+/* Móvil */
+.phone{flex:1;min-height:0;width:100%;max-width:380px;border-radius:34px;background:#0B1418;padding:9px;display:flex;box-shadow:0 18px 40px -18px rgba(10,30,45,.55)}
+.screen{position:relative;flex:1;min-height:0;border-radius:26px;overflow:hidden;background:var(--chat-bg);display:flex;flex-direction:column}
+.chathead{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--chat-head);color:var(--chat-head-ink);flex:none}
+.avatar{width:36px;height:36px;border-radius:50%;background:#fff;color:#0F4F45;display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:15px;flex:none}
+.chathead b{display:block;font-size:15px;line-height:1.2}
+.chathead small{font-size:12px;opacity:.85}
+.msgs{flex:1;min-height:0;overflow-y:auto;padding:12px 10px 6px;display:flex;flex-direction:column;gap:6px;scroll-behavior:smooth}
+.day{align-self:center;font-size:11.5px;background:var(--surface);color:var(--ink-2);padding:3px 10px;border-radius:8px;margin-bottom:4px}
+.b{max-width:84%;padding:7px 10px 5px;border-radius:12px;font-size:14.5px;line-height:1.38;background:var(--bubble-in);align-self:flex-start;border-top-left-radius:3px;word-wrap:break-word;animation:pop .18s ease-out}
+.b.me{align-self:flex-end;background:var(--bubble-out);border-top-left-radius:12px;border-top-right-radius:3px}
+.b .t{display:block;text-align:right;font-size:10.5px;color:var(--ink-2);margin-top:2px}
+.b .tag{display:inline-block;font-size:11px;font-weight:600;color:var(--ink-2);margin-bottom:2px}
+.b .acts{display:flex;flex-direction:column;gap:1px;margin:7px -10px -5px;border-top:1px solid var(--line)}
+.b .acts button{background:none;border:0;border-bottom:1px solid var(--line);padding:9px;font-weight:600;color:var(--brand);font-size:14px}
+.b .acts button:last-child{border-bottom:0}
+.b .acts button:disabled{color:var(--ink-2);cursor:default}
+.b.card{padding-bottom:5px}
+.b.card strong{display:block;font-size:15px}
+.typing{font-style:italic;color:var(--ink-2)}
+.quick{display:flex;gap:6px;flex-wrap:wrap;padding:2px 10px 8px;flex:none}
+.quick button{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600;color:var(--brand)}
+.composer{display:flex;gap:8px;padding:8px 10px 10px;flex:none}
+.composer input{flex:1;min-width:0;border:0;border-radius:999px;padding:10px 14px;background:var(--surface);font-size:16px}
+.composer button{width:42px;height:42px;border-radius:50%;border:0;background:var(--chat-head);color:#fff;font-size:18px;flex:none}
+@keyframes pop{from{transform:translateY(6px);opacity:0}to{transform:none;opacity:1}}
+
+/* Flow dentro del chat */
+.sheet{position:absolute;inset:0;background:rgba(5,15,20,.45);display:none;align-items:flex-end;z-index:5}
+.sheet.open{display:flex}
+.flow{width:100%;max-height:92%;background:var(--surface);border-radius:18px 18px 0 0;display:flex;flex-direction:column;animation:up .22s ease-out}
+@keyframes up{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
+.flowhead{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.flowhead b{flex:1;font-family:var(--display);font-size:16px}
+.flowhead span{font-size:12.5px;color:var(--ink-2)}
+.flowhead button{background:none;border:0;font-size:20px;line-height:1;padding:4px 8px;color:var(--ink-2)}
+.flowbody{padding:14px;overflow-y:auto;flex:1;min-height:0}
+.flowbody h3{font-size:14px;margin:0 0 8px;font-weight:700}
+.flowbody h3+*{margin-top:0}
+.opt{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.opt[aria-pressed="true"]{border-color:var(--brand);background:var(--surface-2)}
+.opt b{display:block;font-size:14.5px}
+.opt small{color:var(--ink-2);font-size:12.5px}
+.opt .price{margin-left:auto;font-weight:700;white-space:nowrap}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.days{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:10px}
+.days button{flex:none;min-width:58px;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:6px 8px;text-align:center;font-size:12px;color:var(--ink-2)}
+.days button b{display:block;font-size:17px;color:var(--ink);font-family:var(--display)}
+.days button[aria-pressed="true"]{border-color:var(--brand);background:var(--surface-2)}
+.times{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.times button{background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:9px 4px;font-weight:600;font-size:14.5px;position:relative}
+.times button[aria-pressed="true"]{border-color:var(--brand);background:var(--brand);color:var(--brand-ink)}
+.times .rec{display:block;font-size:10.5px;font-weight:600;color:var(--free)}
+.times button[aria-pressed="true"] .rec{color:inherit}
+.live{font-size:12px;color:var(--free);font-weight:600;margin:0 0 8px}
+.none{font-size:13.5px;color:var(--ink-2);padding:10px 0}
+.field{display:block;font-size:13px;font-weight:600;margin-bottom:12px}
+.field input{display:block;width:100%;margin-top:5px;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface);font-size:15px}
+.summary{background:var(--surface-2);border-radius:12px;padding:12px;font-size:14px}
+.summary div{display:flex;justify-content:space-between;gap:12px;padding:3px 0}
+.summary span{color:var(--ink-2)}
+.flowfoot{padding:10px 14px 14px;border-top:1px solid var(--line)}
+.primary{width:100%;background:var(--brand);color:var(--brand-ink);border:0;border-radius:12px;padding:12px;font-weight:700;font-size:15px}
+.primary:disabled{opacity:.4;cursor:not-allowed}
+
+/* Panel del negocio */
+.biz{min-height:0;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.bizhead{display:flex;align-items:flex-end;gap:16px;padding:14px 18px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.bizhead h1{font-family:var(--display);font-size:22px;letter-spacing:-.02em;margin:0 0 10px;margin-right:auto}
+.tabs{display:flex;gap:2px;overflow-x:auto}
+.tabs button{background:none;border:0;border-bottom:3px solid transparent;padding:8px 12px 10px;font-weight:600;font-size:14px;color:var(--ink-2);white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--brand)}
+.badge{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:var(--new);color:#221600;font-size:11px;font-weight:700;margin-left:5px}
+.pane{flex:1;min-height:0;display:none;flex-direction:column}
+.pane.on{display:flex}
+
+/* Agenda */
+.agbar{display:flex;gap:8px;align-items:center;padding:10px 18px;flex-wrap:wrap}
+.agdays{display:flex;gap:6px;overflow-x:auto;flex:1;min-width:0}
+.agdays button{flex:none;background:none;border:1px solid var(--line);border-radius:9px;padding:5px 11px;font-size:13px;font-weight:600;color:var(--ink-2)}
+.agdays button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.agscroll{flex:1;min-height:0;overflow:auto;padding:0 18px 18px}
+.aghead{display:grid;grid-template-columns:46px repeat(3,minmax(120px,1fr));position:sticky;top:0;background:var(--surface);z-index:2;border-bottom:1px solid var(--line)}
+.aghead div{padding:8px 8px;font-weight:700;font-size:14px;display:flex;align-items:center;gap:7px}
+.aghead small{font-weight:500;color:var(--ink-2)}
+.aggrid{display:grid;grid-template-columns:46px repeat(3,minmax(120px,1fr));position:relative}
+.gutter{position:relative}
+.gutter span{position:absolute;right:8px;font-size:11.5px;color:var(--ink-2);transform:translateY(-50%)}
+.col{position:relative;border-left:1px solid var(--line);background-image:linear-gradient(var(--line) 1px,transparent 1px);background-size:100% 72px}
+.closed{position:absolute;left:0;right:0;background:var(--closed);display:grid;place-items:center;font-size:12px;color:var(--ink-2)}
+.ap{position:absolute;left:4px;right:4px;border-radius:7px;border-left:3px solid var(--pc);background:color-mix(in srgb,var(--pc) 15%,var(--surface));padding:3px 7px;font-size:12px;line-height:1.3;overflow:hidden}
+.ap b{font-weight:700}
+.ap span{display:block;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ap.short span{display:inline;margin-left:5px}
+.ap.new{outline:2px solid var(--new);background:var(--new-bg);animation:land 1.4s ease-out}
+.ap.new::after{content:"Por chat";position:absolute;top:3px;right:5px;font-size:10px;font-weight:700;color:var(--new)}
+@keyframes land{0%{transform:scale(.6);opacity:0}25%{transform:scale(1.06);opacity:1}45%{transform:scale(1)}60%{box-shadow:0 0 0 8px color-mix(in srgb,var(--new) 35%,transparent)}100%{box-shadow:0 0 0 0 transparent}}
+
+/* Conversación */
+.convbar{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.state{font-weight:700;font-size:14px;margin-right:auto}
+.state i{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--free);margin-right:7px}
+.state.paused i{background:var(--paid)}
+.conv{flex:1;min-height:0;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:8px}
+.cl{max-width:70%;font-size:14px;padding:7px 11px;border-radius:10px;background:var(--surface-2);align-self:flex-start}
+.cl.out{align-self:flex-end;background:color-mix(in srgb,var(--brand) 14%,var(--surface))}
+.cl small{display:block;font-size:11px;color:var(--ink-2);font-weight:600}
+.convsend{display:flex;gap:8px;padding:12px 18px;border-top:1px solid var(--line)}
+.convsend input{flex:1;min-width:0;border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;background:var(--surface)}
+.convsend input:disabled{background:var(--surface-2)}
+.convsend button{width:auto;padding:9px 16px}
+
+/* Resultados */
+.scroll{flex:1;min-height:0;overflow-y:auto;padding:18px}
+.note{font-size:13px;color:var(--ink-2);margin:0 0 14px;max-width:70ch}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:22px}
+.kpi{padding:14px 16px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);margin:0 -1px -1px 0}
+.kpi b{display:block;font-family:var(--display);font-size:30px;letter-spacing:-.02em;line-height:1.1}
+.kpi span{font-size:13px;color:var(--ink-2)}
+.scroll h2{font-family:var(--display);font-size:17px;margin:0 0 10px}
+.bar{display:grid;grid-template-columns:110px 1fr 46px;align-items:center;gap:10px;font-size:14px;margin-bottom:8px}
+.bar div{height:12px;border-radius:6px;background:var(--surface-2);overflow:hidden}
+.bar div i{display:block;height:100%;border-radius:6px;transition:width .5s}
+.bar em{font-style:normal;font-weight:700;text-align:right}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:26px}
+
+/* Bajo el capó */
+.meter{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.meter div{background:var(--surface-2);border-radius:10px;padding:10px 12px}
+.meter b{display:block;font-family:var(--display);font-size:20px}
+.meter span{font-size:12.5px;color:var(--ink-2)}
+.log{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.log li{display:grid;grid-template-columns:62px 92px 1fr auto;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);font-size:13px;align-items:baseline}
+.log li:last-child{border-bottom:0}
+.log time{color:var(--ink-2);font-variant-numeric:tabular-nums}
+.log .k{font-weight:700}
+.log .c{font-weight:700;white-space:nowrap}
+.log .c.free{color:var(--free)}
+.log .c.paid{color:var(--paid)}
+.empty{padding:16px;color:var(--ink-2);font-size:14px}
+
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--ink);color:var(--surface);padding:10px 14px;border-radius:12px;font-size:14px;font-weight:600;display:flex;gap:12px;align-items:center;opacity:0;pointer-events:none;transition:.25s;z-index:20;max-width:92vw}
+.toast.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.toast button{background:none;border:0;color:var(--new);font-weight:700;padding:0}
+
+@media (max-width:900px){
+  .viewswitch{display:flex}
+  .sim{display:none}
+  .top{padding:8px 12px;gap:8px}
+  .brand{font-size:17px;margin-right:auto}
+  .stage{grid-template-columns:1fr;padding:10px}
+  body[data-view="cliente"] .biz{display:none}
+  body[data-view="negocio"] .client{display:none}
+  .phone{max-width:440px;border-radius:26px;padding:6px}
+  .screen{border-radius:21px}
+  .caption{display:none}
+  .log li{grid-template-columns:54px 1fr auto}
+  .log .k{grid-column:2}
+  .log .d{grid-column:2/4}
+  .cl{max-width:88%}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:900px){.field input,.convsend input{font-size:16px}}
+body{-webkit-text-size-adjust:100%;overscroll-behavior:none}
+</style>
+</head>
+<body data-view="cliente">
+
+<header class="top">
+  <div class="brand">Agéndalo Ya</div>
+  <div class="sim">Simulación: no envía mensajes reales ni usa WhatsApp. Los datos son de ejemplo.</div>
+  <div class="viewswitch" role="group" aria-label="Vista">
+    <button id="vCliente" aria-pressed="true">Cliente</button>
+    <button id="vNegocio" aria-pressed="false">Negocio<span class="badge" id="vBadge" hidden>1</span></button>
+  </div>
+  <button class="ghost" id="reset">Reiniciar</button>
+</header>
+
+<main class="stage">
+  <section class="client" aria-label="Móvil del cliente">
+    <div class="phone">
+      <div class="screen">
+        <div class="chathead">
+          <div class="avatar">FR</div>
+          <div><b>Fisio Ronda</b><small>Cuenta de empresa</small></div>
+        </div>
+        <div class="msgs" id="msgs" aria-live="polite"></div>
+        <div class="quick" id="quick"></div>
+        <form class="composer" id="composer" autocomplete="off">
+          <input id="input" placeholder="Escribe un mensaje" aria-label="Mensaje del cliente" enterkeyhint="send">
+          <button aria-label="Enviar">&#10148;</button>
+        </form>
+        <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="flowTitle">
+          <div class="flow">
+            <div class="flowhead"><b id="flowTitle">Reservar cita</b><span id="flowStep"></span><button id="flowClose" aria-label="Cerrar">&times;</button></div>
+            <div class="flowbody" id="flowBody"></div>
+            <div class="flowfoot"><button class="primary" id="flowNext">Continuar</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">Lo que ve el paciente. Escribe con tus palabras o usa los botones.</p>
+  </section>
+
+  <section class="biz" aria-label="Panel del negocio">
+    <div class="bizhead">
+      <h1>Panel de Fisio Ronda</h1>
+      <div class="tabs" role="tablist">
+        <button role="tab" data-tab="agenda" aria-selected="true">Agenda</button>
+        <button role="tab" data-tab="conv" aria-selected="false">Conversación</button>
+        <button role="tab" data-tab="res" aria-selected="false">Resultados</button>
+        <button role="tab" data-tab="capo" aria-selected="false">Bajo el capó</button>
+      </div>
+    </div>
+
+    <div class="pane on" id="pane-agenda">
+      <div class="agbar">
+        <div class="agdays" id="agDays"></div>
+        <button class="ghost" id="remind">Simular recordatorio del día antes</button>
+      </div>
+      <div class="agscroll" id="agScroll">
+        <div class="aghead" id="agHead"></div>
+        <div class="aggrid" id="agGrid"></div>
+      </div>
+    </div>
+
+    <div class="pane" id="pane-conv">
+      <div class="convbar">
+        <div class="state" id="botState"><i></i>El asistente responde solo</div>
+        <button class="ghost" id="pause">Pausar y responder yo</button>
+      </div>
+      <div class="conv" id="conv"></div>
+      <form class="convsend" id="convSend" autocomplete="off">
+        <input id="convInput" placeholder="Pausa el asistente para escribir tú" aria-label="Respuesta del negocio" disabled>
+        <button class="primary" id="convBtn" disabled>Enviar</button>
+      </form>
+    </div>
+
+    <div class="pane" id="pane-res">
+      <div class="scroll">
+        <p class="note">Cifras calculadas sobre la agenda de ejemplo de esta demo. Se actualizan con lo que hagas en el móvil.</p>
+        <div class="kpis" id="kpis"></div>
+        <div class="two">
+          <div><h2>Ocupación por profesional</h2><div id="occ"></div></div>
+          <div><h2>Servicios más reservados</h2><div id="svc"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pane" id="pane-capo">
+      <div class="scroll">
+        <p class="note">Qué haría el sistema real en cada paso y qué cobraría Meta. En esta demo la intención se detecta con reglas; en producción lo haría un modelo de lenguaje con acceso a las mismas acciones. La tarifa del recordatorio (0,025&nbsp;€) es una estimación para España.</p>
+        <div class="meter" id="meter"></div>
+        <ul class="log" id="log"></ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"><span id="toastTxt"></span><button id="toastBtn">Ver agenda</button></div>
+
+<script>
+(function(){
+"use strict";
+var $=function(id){return document.getElementById(id)};
+var el=function(tag,cls,html){var e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e};
+var esc=function(s){return String(s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})};
+var pad=function(n){return(n<10?"0":"")+n};
+var hm=function(m){return Math.floor(m/60)+":"+pad(m%60)};
+var norm=function(s){return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")};
+
+/* ---------- Datos del negocio ---------- */
+var BIZ={name:"Fisio Ronda",addr:"Ronda del Parc 14, bajos",blocks:[[540,840],[960,1200]]};
+var PROS=[{id:"laura",name:"Laura",c:"var(--p1)"},{id:"jordi",name:"Jordi",c:"var(--p2)"},{id:"nuria",name:"Núria",c:"var(--p3)"}];
+var SERVICES=[
+  {id:"primera",name:"Primera visita y valoración",min:60,price:50,pros:["laura","jordi","nuria"]},
+  {id:"sesion",name:"Sesión de fisioterapia",min:45,price:42,pros:["laura","jordi","nuria"]},
+  {id:"descarga",name:"Masaje de descarga",min:30,price:32,pros:["laura","jordi"]},
+  {id:"pelvico",name:"Fisioterapia de suelo pélvico",min:60,price:55,pros:["nuria"]}
+];
+var NAMES=["Carmen R.","Pau V.","Lucía M.","Andrés G.","Irene S.","Óscar T.","Marta P.","Joan C.","Elena F.","Raúl D.","Sílvia B.","Hugo N.","Aina L.","David Q.","Rosa E."];
+var UTIL=0.025, PX=1.2, DAY0=540, DAY1=1200;
+var svc=function(id){return SERVICES.filter(function(s){return s.id===id})[0]};
+var pro=function(id){return PROS.filter(function(p){return p.id===id})[0]};
+
+/* ---------- Fechas ---------- */
+var iso=function(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())};
+var fromIso=function(s){var p=s.split("-");return new Date(+p[0],+p[1]-1,+p[2])};
+var DAYS=(function(){var out=[],d=new Date();d.setHours(0,0,0,0);while(out.length<6){if(d.getDay()!==0&&d.getDay()!==6)out.push(iso(d));d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1)}return out})();
+var todayIso=iso(new Date());
+var tomorrowIso=(function(){var d=new Date();return iso(new Date(d.getFullYear(),d.getMonth(),d.getDate()+1))})();
+var wd=function(s){return fromIso(s).toLocaleDateString("es-ES",{weekday:"short"}).replace(".","")};
+var dayLong=function(s){
+  var base=fromIso(s).toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"});
+  if(s===todayIso)return "hoy, "+base; if(s===tomorrowIso)return "mañana, "+base; return base;
+};
+var onDay=function(s){var base=fromIso(s).toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"});if(s===todayIso)return "hoy";if(s===tomorrowIso)return "mañana ("+base+")";return "el "+base};
+var dayShort=function(s){if(s===todayIso)return "Hoy";if(s===tomorrowIso)return "Mañana";var d=fromIso(s);return wd(s)+" "+d.getDate()};
+var nowMin=function(){var d=new Date();return d.getHours()*60+d.getMinutes()};
+var clock=function(){var d=new Date();return d.getHours()+":"+pad(d.getMinutes())};
+
+/* ---------- Estado ---------- */
+var S;
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;var t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function seedAgenda(){
+  var list=[],n=0;
+  DAYS.forEach(function(day,di){
+    PROS.forEach(function(p,pi){
+      var r=rng(di*97+pi*31+7), mine=SERVICES.filter(function(s){return s.pros.indexOf(p.id)>=0});
+      BIZ.blocks.forEach(function(b){
+        var t=b[0];
+        while(t<b[1]){
+          if(r()<0.56){
+            var s=mine[Math.floor(r()*mine.length)];
+            if(t+s.min<=b[1]){list.push({id:"C-"+(1000+n++),pro:p.id,date:day,start:t,dur:s.min,client:NAMES[Math.floor(r()*NAMES.length)],svc:s.id,bot:r()<0.45,isNew:false});t+=s.min;continue}
+          }
+          t+=30;
+        }
+      });
+    });
+  });
+  return list;
+}
+function init(){
+  S={appts:seedAgenda(),msgs:[],log:[],mine:null,name:"",paused:false,windowOpen:false,cost:0,free:0,paid:0,
+     liveBooked:0,liveMsgs:0,agDay:DAYS[0],tab:"agenda",flow:null,pendingBadge:0,nextId:2000};
+}
+
+/* ---------- Disponibilidad ---------- */
+function isFree(proId,date,start,dur,ignoreId){
+  var okBlock=BIZ.blocks.some(function(b){return start>=b[0]&&start+dur<=b[1]});
+  if(!okBlock)return false;
+  if(date===todayIso&&start<nowMin()+60)return false;
+  return !S.appts.some(function(a){return a.id!==ignoreId&&a.pro===proId&&a.date===date&&start<a.start+a.dur&&a.start<start+dur});
+}
+function adjacent(proId,date,start,dur,ignoreId){
+  var edge=BIZ.blocks.some(function(b){return start===b[0]||start+dur===b[1]});
+  return edge||S.appts.some(function(a){return a.id!==ignoreId&&a.pro===proId&&a.date===date&&(a.start+a.dur===start||a.start===start+dur)});
+}
+function load(proId,date){return S.appts.filter(function(a){return a.pro===proId&&a.date===date}).length}
+function slots(serviceId,proId,date,ignoreId){
+  var s=svc(serviceId),cands=proId==="any"?s.pros.slice().sort(function(a,b){return load(a,date)-load(b,date)}):[proId],out=[];
+  for(var t=DAY0;t<DAY1;t+=15){
+    var best=null;
+    for(var i=0;i<cands.length;i++){
+      if(isFree(cands[i],date,t,s.min,ignoreId)){
+        var adj=adjacent(cands[i],date,t,s.min,ignoreId);
+        if(!best||(adj&&!best.rec))best={time:t,pro:cands[i],rec:adj};
+      }
+    }
+    if(best)out.push(best);
+  }
+  var keep=out.filter(function(o){return o.rec||o.time%30===0});
+  if(keep.length>9){var rec=keep.filter(function(o){return o.rec}),rest=keep.filter(function(o){return !o.rec});
+    var step=Math.max(1,Math.ceil(rest.length/Math.max(1,9-Math.min(rec.length,5))));
+    keep=rec.slice(0,5).concat(rest.filter(function(_,i){return i%step===0})).slice(0,9)}
+  return keep.sort(function(a,b){return a.time-b.time});
+}
+
+/* ---------- Registro técnico ---------- */
+function log(k,d,cost){
+  S.log.unshift({t:new Date().toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit",second:"2-digit"}),k:k,d:d,cost:cost});
+  if(cost===0)S.free++; else if(cost>0){S.paid++;S.cost+=cost}
+  renderCapo();
+}
+
+/* ---------- Chat ---------- */
+function push(m){m.time=clock();S.msgs.push(m);renderMsg(m);renderConv();return m}
+function renderMsg(m){
+  var box=$("msgs"),b=el("div","b"+(m.from==="user"?" me":"")+(m.card?" card":""));
+  var h="";
+  if(m.tag)h+='<span class="tag">'+esc(m.tag)+'</span><br>';
+  h+=m.html+'<span class="t">'+m.time+'</span>';
+  b.innerHTML=h;
+  if(m.buttons){var acts=el("div","acts");m.buttons.forEach(function(bt){var x=el("button",null,esc(bt.label));x.type="button";x.addEventListener("click",function(){act(bt.action,bt.label,m)});acts.appendChild(x)});b.appendChild(acts)}
+  m.node=b;box.appendChild(b);box.scrollTop=box.scrollHeight;
+}
+function botSay(html,opts){
+  opts=opts||{};
+  var box=$("msgs"),ty=el("div","b typing","escribiendo…");box.appendChild(ty);box.scrollTop=box.scrollHeight;
+  setTimeout(function(){
+    ty.remove();
+    push({from:"bot",html:html,buttons:opts.buttons,card:opts.card,tag:opts.tag});
+    log("Respuesta",opts.logText||"Mensaje de texto dentro de la ventana de 24 h",0);
+    setQuick(opts.quick);
+  },opts.delay==null?650:opts.delay);
+}
+function setQuick(list){
+  var q=$("quick");q.innerHTML="";
+  (list||[]).forEach(function(it){var b=el("button",null,esc(it.label));b.type="button";b.addEventListener("click",function(){userSays(it.label,it.action)});q.appendChild(b)});
+}
+var MENU=[{label:"Pedir cita",action:"book"},{label:"Precios",action:"prices"},{label:"Horario",action:"hours"}];
+
+function userSays(text,forced){
+  push({from:"user",html:esc(text)});
+  S.liveMsgs++;S.windowOpen=true;setQuick([]);
+  log("Entrante","El cliente escribe: «"+esc(text)+"». Se abre la ventana de 24 h",null);
+  if(S.paused){log("En pausa","El asistente no responde; espera a una persona del negocio",null);renderRes();return}
+  var intent=forced||detect(text);
+  log("Intención",intentName(intent)+(forced?" (botón)":" (texto libre)"),null);
+  respond(intent);renderRes();
+}
+function detect(t){
+  var s=norm(t);
+  if(/cancel|anul/.test(s))return "cancel-ask";
+  if(/cambi|modific|mover|otra hora|otro dia|reprogram|aplaz/.test(s))return "resched";
+  if(/persona|humano|recepcion|hablar con|alguien|llamad/.test(s))return "human";
+  if(/duele|dolor|lesion|contractura|esguince|ciatica|lumbago|pinzamiento|tiron/.test(s))return "pain";
+  if(/precio|cuesta|cuanto|vale|tarifa|cobr/.test(s))return "prices";
+  if(/horario|abris|abierto|abre|cerrais|cierra|sabado|domingo|festivo/.test(s))return "hours";
+  if(/donde|direccion|ubicacion|llegar|aparc|parking|calle/.test(s))return "where";
+  if(/cita|reserv|hora|hueco|agend|pedir|visita|sesion|masaje/.test(s))return "book";
+  if(/gracias|perfecto|genial|vale/.test(s))return "thanks";
+  if(/hola|buenas|buenos|hey/.test(s))return "greet";
+  return "unknown";
+}
+function intentName(i){return{book:"Pedir cita",prices:"Consultar precios",hours:"Consultar horario",where:"Consultar ubicación","cancel-ask":"Cancelar cita",resched:"Cambiar cita",human:"Hablar con una persona",pain:"Consulta clínica (fuera de alcance)",thanks:"Agradecimiento",greet:"Saludo",unknown:"No reconocida"}[i]||i}
+
+function respond(intent){
+  switch(intent){
+    case "greet":
+      botSay("Hola, soy el asistente de Fisio Ronda. Puedo darte cita, cambiarla o resolver dudas de precios y horario. ¿Qué necesitas?",{quick:MENU});break;
+    case "book":
+      log("Acción","consultar_huecos() lee la agenda en tiempo real",null);
+      botSay("Claro. Elige servicio, día y hora aquí mismo, sin salir del chat.",{buttons:[{label:"Reservar cita",action:"open-flow"}],logText:"Mensaje con formulario de reserva (Flow), dentro de la ventana"});break;
+    case "prices":
+      botSay("Estas son nuestras tarifas:<br>"+SERVICES.map(function(s){return "• "+s.name+" ("+s.min+" min): <b>"+s.price+" €</b>"}).join("<br>"),{quick:[MENU[0],MENU[2]]});break;
+    case "hours":
+      botSay("Abrimos de lunes a viernes, de 9:00 a 14:00 y de 16:00 a 20:00. Sábados y domingos cerrado. Por aquí puedes reservar a cualquier hora.",{quick:[MENU[0],MENU[1]]});break;
+    case "where":
+      botSay("Estamos en "+BIZ.addr+". Hay zona azul en la misma calle y un aparcamiento público a dos minutos a pie.",{quick:[MENU[0]]});break;
+    case "pain":
+      botSay("Siento que estés así. Por chat no puedo valorar una lesión: eso lo hace el fisioterapeuta en consulta. Te recomiendo una primera visita y, si quieres, te busco el primer hueco.",{buttons:[{label:"Reservar primera visita",action:"open-flow-primera"}],quick:[{label:"Hablar con una persona",action:"human"}]});break;
+    case "human":
+      S.paused=true;renderConv();
+      log("Traspaso","El asistente se pausa y avisa al negocio",null);
+      botSay("De acuerdo, aviso al equipo y te responde una persona en cuanto pueda. Mientras tanto dejo de contestar yo.",{});
+      bump();break;
+    case "thanks":
+      botSay("A ti. Si necesitas algo más, escríbeme cuando quieras.",{});break;
+    case "resched":
+      if(!S.mine){botSay("No encuentro ninguna cita próxima con este número. ¿Quieres reservar una?",{quick:[MENU[0]]});break}
+      log("Acción","buscar_cita(teléfono) encuentra "+S.mine.id,null);
+      botSay("Tienes "+svc(S.mine.svc).name.toLowerCase()+" "+onDay(S.mine.date)+" a las "+hm(S.mine.start)+". Elige el nuevo día y hora:",{buttons:[{label:"Cambiar día y hora",action:"open-resched"}],logText:"Mensaje con formulario de cambio (Flow), dentro de la ventana"});break;
+    case "cancel-ask":
+      if(!S.mine){botSay("No encuentro ninguna cita próxima con este número.",{quick:[MENU[0]]});break}
+      log("Acción","buscar_cita(teléfono) encuentra "+S.mine.id,null);
+      botSay("¿Seguro que quieres cancelar la cita que tienes "+onDay(S.mine.date)+" a las "+hm(S.mine.start)+"?",{buttons:[{label:"Sí, cancelar",action:"cancel-yes"},{label:"No, la mantengo",action:"cancel-no"}]});break;
+    default:
+      botSay("No estoy seguro de haberte entendido. Puedo ayudarte con citas, precios, horario y cómo llegar. Si lo prefieres, te paso con una persona.",{quick:MENU.concat([{label:"Hablar con una persona",action:"human"}])});
+  }
+}
+
+function act(action,label,m){
+  if(m&&m.node&&/^(cancel-yes|cancel-no|attend-yes)$/.test(action)){[].forEach.call(m.node.querySelectorAll("button"),function(b){b.disabled=true})}
+  switch(action){
+    case "open-flow":openFlow("new");break;
+    case "open-flow-primera":openFlow("new","primera");break;
+    case "open-resched":if(S.mine)openFlow("resched");break;
+    case "resched":userSays(label,"resched");break;
+    case "cancel-ask":userSays(label,"cancel-ask");break;
+    case "cancel-no":
+      push({from:"user",html:esc(label)});S.windowOpen=true;log("Entrante","El cliente pulsa «"+esc(label)+"»",null);
+      if(!S.paused)botSay("Perfecto, tu cita sigue en pie. Te esperamos.",{});break;
+    case "cancel-yes":
+      push({from:"user",html:esc(label)});S.windowOpen=true;log("Entrante","El cliente pulsa «"+esc(label)+"»",null);
+      if(S.mine){
+        var gone=S.mine;S.appts=S.appts.filter(function(a){return a.id!==gone.id});S.mine=null;
+        log("Acción","cancelar_cita("+gone.id+") libera el hueco en la agenda",null);
+        S.agDay=gone.date;renderAgenda();renderRes();bump("Cita cancelada, hueco liberado");
+        if(!S.paused)botSay("Hecho, tu cita queda cancelada y el hueco libre para otro paciente. Cuando quieras otra, aquí estoy.",{quick:[MENU[0]]});
+      }break;
+    case "attend-yes":
+      push({from:"user",html:esc(label)});S.windowOpen=true;
+      log("Entrante","El cliente responde al recordatorio. Se reabre la ventana de 24 h",null);
+      if(!S.paused)botSay("Gracias por confirmar. Te esperamos.",{});break;
+  }
+}
+
+/* ---------- Flow de reserva ---------- */
+function openFlow(mode,preSvc){
+  var f={mode:mode,step:mode==="resched"?3:1,svc:preSvc||null,pro:null,date:null,slot:null,name:S.name};
+  if(mode==="resched"){f.svc=S.mine.svc;f.pro="any";f.ignore=S.mine.id}
+  if(preSvc)f.step=2;
+  S.flow=f;$("sheet").classList.add("open");renderFlow();
+  log("Flow","El cliente abre el formulario dentro del chat",null);
+}
+function closeFlow(){$("sheet").classList.remove("open");S.flow=null}
+function firstDay(f){for(var i=0;i<DAYS.length;i++){if(slots(f.svc,f.pro,DAYS[i],f.ignore).length)return DAYS[i]}return DAYS[0]}
+function renderFlow(){
+  var f=S.flow,body=$("flowBody"),next=$("flowNext");body.innerHTML="";
+  $("flowTitle").textContent=f.mode==="resched"?"Cambiar cita":"Reservar cita";
+  $("flowStep").textContent=f.mode==="resched"?"":"Paso "+f.step+" de 4";
+  next.textContent=f.step===4?"Confirmar cita":(f.mode==="resched"?"Confirmar cambio":"Continuar");
+  if(f.step===1){
+    body.appendChild(el("h3",null,"¿Qué necesitas?"));
+    SERVICES.forEach(function(s){
+      var b=el("button","opt",'<div><b>'+s.name+'</b><small>'+s.min+' min</small></div><span class="price">'+s.price+' €</span>');
+      b.type="button";b.setAttribute("aria-pressed",f.svc===s.id);
+      b.addEventListener("click",function(){f.svc=s.id;f.pro=null;f.slot=null;renderFlow()});body.appendChild(b)});
+    next.disabled=!f.svc;
+  }else if(f.step===2){
+    body.appendChild(el("h3",null,"¿Con quién?"));
+    var opts=[{id:"any",name:"Cualquier profesional",sub:"Verás más horas libres"}].concat(svc(f.svc).pros.map(function(id){return{id:id,name:pro(id).name,sub:"Fisioterapeuta",c:pro(id).c}}));
+    opts.forEach(function(o){
+      var b=el("button","opt",(o.c?'<i class="dot" style="background:'+o.c+'"></i>':'')+'<div><b>'+o.name+'</b><small>'+o.sub+'</small></div>');
+      b.type="button";b.setAttribute("aria-pressed",f.pro===o.id);
+      b.addEventListener("click",function(){f.pro=o.id;f.slot=null;f.date=null;renderFlow()});body.appendChild(b)});
+    next.disabled=!f.pro;
+  }else if(f.step===3){
+    if(!f.date)f.date=firstDay(f);
+    body.appendChild(el("h3",null,"Elige día y hora"));
+    var days=el("div","days");
+    DAYS.forEach(function(d){
+      var b=el("button",null,(d===todayIso?"hoy":d===tomorrowIso?"mañana":wd(d))+"<b>"+fromIso(d).getDate()+"</b>");
+      b.type="button";b.setAttribute("aria-pressed",f.date===d);
+      b.addEventListener("click",function(){f.date=d;f.slot=null;renderFlow()});days.appendChild(b)});
+    body.appendChild(days);
+    var list=slots(f.svc,f.pro,f.date,f.ignore);
+    if(!list.length){body.appendChild(el("p","none","No quedan huecos este día. Prueba con otro."))}
+    else{
+      body.appendChild(el("p","live","Disponibilidad real de la agenda, ahora mismo"));
+      var grid=el("div","times");
+      list.forEach(function(o){
+        var b=el("button",null,hm(o.time)+(o.rec?'<span class="rec">sin huecos</span>':''));
+        b.type="button";b.setAttribute("aria-pressed",!!(f.slot&&f.slot.time===o.time));
+        b.addEventListener("click",function(){f.slot=o;renderFlow()});grid.appendChild(b)});
+      body.appendChild(grid);
+    }
+    next.disabled=!f.slot;
+  }else{
+    body.appendChild(el("h3",null,"Tus datos"));
+    var lab=el("label","field",'Nombre y apellido<input id="fName" maxlength="40" placeholder="Por ejemplo, Marta Soler">');
+    body.appendChild(lab);
+    var inp=lab.querySelector("input");inp.value=f.name||"";
+    inp.addEventListener("input",function(){f.name=inp.value;next.disabled=!f.name.trim()});
+    var s=svc(f.svc);
+    body.appendChild(el("div","summary",
+      '<div><span>Servicio</span><b>'+s.name+'</b></div>'+
+      '<div><span>Cuándo</span><b>'+dayLong(f.date)+', '+hm(f.slot.time)+'</b></div>'+
+      '<div><span>Con</span><b>'+pro(f.slot.pro).name+'</b></div>'+
+      '<div><span>Precio</span><b>'+s.price+' €, se paga en la clínica</b></div>'));
+    next.disabled=!(f.name||"").trim();
+    setTimeout(function(){if(!inp.value)inp.focus()},50);
+  }
+}
+function flowNext(){
+  var f=S.flow;if(!f)return;
+  if(f.mode==="resched"){return commitResched()}
+  if(f.step<4){f.step++;renderFlow();return}
+  commitNew();
+}
+function commitNew(){
+  var f=S.flow,s=svc(f.svc);
+  if(!isFree(f.slot.pro,f.date,f.slot.time,s.min)){f.step=3;f.slot=null;renderFlow();return}
+  var a={id:"C-"+(S.nextId++),pro:f.slot.pro,date:f.date,start:f.slot.time,dur:s.min,client:f.name.trim(),svc:s.id,bot:true,isNew:true};
+  S.appts.push(a);S.mine=a;S.name=a.client;S.liveBooked++;closeFlow();
+  push({from:"user",html:"<i>Reserva enviada</i>"});
+  log("Flow","El cliente envía el formulario completo",null);
+  log("Acción","crear_cita("+a.id+") guarda la cita y bloquea el hueco",null);
+  S.agDay=a.date;renderAgenda(a.id);renderRes();bump("Cita nueva en la agenda");
+  botSay("<strong>Cita confirmada</strong>"+s.name+"<br>"+cap(dayLong(a.date))+", a las "+hm(a.start)+"<br>Con "+pro(a.pro).name+", en "+BIZ.addr+"<br><br>Te avisaré el día antes.",
+    {card:true,buttons:[{label:"Cambiar cita",action:"resched"},{label:"Cancelar cita",action:"cancel-ask"}],logText:"Confirmación, dentro de la ventana de 24 h"});
+}
+function commitResched(){
+  var f=S.flow,a=S.mine,s=svc(a.svc);
+  if(!a||!isFree(f.slot.pro,f.date,f.slot.time,s.min,a.id)){f.slot=null;renderFlow();return}
+  a.pro=f.slot.pro;a.date=f.date;a.start=f.slot.time;a.isNew=true;closeFlow();
+  push({from:"user",html:"<i>Cambio enviado</i>"});
+  log("Acción","mover_cita("+a.id+") libera el hueco anterior y bloquea el nuevo",null);
+  S.agDay=a.date;renderAgenda(a.id);renderRes();bump("Cita movida en la agenda");
+  botSay("<strong>Cita cambiada</strong>"+s.name+"<br>"+cap(dayLong(a.date))+", a las "+hm(a.start)+"<br>Con "+pro(a.pro).name,
+    {card:true,buttons:[{label:"Cambiar cita",action:"resched"},{label:"Cancelar cita",action:"cancel-ask"}],logText:"Confirmación de cambio, dentro de la ventana"});
+}
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
+
+/* ---------- Recordatorio (plantilla) ---------- */
+function remind(){
+  if(!S.mine){toast("Primero reserva una cita desde el móvil",false);return}
+  var a=S.mine;S.windowOpen=false;
+  log("Tiempo","Simulación: pasan más de 24 h sin mensajes. La ventana se cierra",null);
+  push({from:"bot",tag:"Recordatorio automático",html:"Hola "+esc(a.client.split(" ")[0])+", te recordamos tu cita en Fisio Ronda: "+svc(a.svc).name.toLowerCase()+", "+dayLong(a.date)+" a las "+hm(a.start)+" con "+pro(a.pro).name+".",
+    buttons:[{label:"Confirmo que voy",action:"attend-yes"},{label:"Cambiar cita",action:"resched"},{label:"Cancelar cita",action:"cancel-ask"}]});
+  log("Plantilla","Recordatorio fuera de ventana: plantilla de utilidad, de pago",UTIL);
+  setQuick([]);
+  if(document.body.dataset.view==="negocio"&&window.matchMedia("(max-width:900px)").matches)toast("Recordatorio enviado al móvil",false);
+}
+
+/* ---------- Agenda ---------- */
+function renderAgenda(focusId){
+  var days=$("agDays");days.innerHTML="";
+  DAYS.forEach(function(d){var b=el("button",null,cap(dayShort(d)));b.type="button";b.setAttribute("aria-pressed",S.agDay===d);
+    b.addEventListener("click",function(){S.agDay=d;renderAgenda()});days.appendChild(b)});
+  var head=$("agHead");head.innerHTML="<div></div>";
+  PROS.forEach(function(p){head.appendChild(el("div",null,'<i class="dot" style="background:'+p.c+'"></i>'+p.name+' <small>'+load(p.id,S.agDay)+' citas</small>'))});
+  var grid=$("agGrid");grid.innerHTML="";grid.style.height=((DAY1-DAY0)*PX)+"px";
+  var gut=el("div","gutter");
+  for(var t=DAY0;t<=DAY1;t+=60){var sp=el("span",null,hm(t));sp.style.top=((t-DAY0)*PX)+"px";gut.appendChild(sp)}
+  grid.appendChild(gut);
+  var focus=null;
+  PROS.forEach(function(p){
+    var col=el("div","col");
+    var cl=el("div","closed","Cerrado");cl.style.top=((840-DAY0)*PX)+"px";cl.style.height=(120*PX)+"px";col.appendChild(cl);
+    S.appts.filter(function(a){return a.pro===p.id&&a.date===S.agDay}).forEach(function(a){
+      var d=el("div","ap"+(a.dur<45?" short":"")+(a.isNew?" new":""),"<b>"+esc(a.client)+"</b><span>"+hm(a.start)+" "+svc(a.svc).name+"</span>");
+      d.style.setProperty("--pc",p.c);d.style.top=((a.start-DAY0)*PX+1)+"px";d.style.height=(a.dur*PX-2)+"px";
+      d.title=a.client+", "+svc(a.svc).name+", "+hm(a.start)+" a "+hm(a.start+a.dur)+(a.bot?" (reservada por chat)":"");
+      col.appendChild(d);if(a.id===focusId)focus=d;
+    });
+    grid.appendChild(col);
+  });
+  if(focus){var sc=$("agScroll");sc.scrollTop=Math.max(0,focus.offsetTop-120)}
+}
+
+/* ---------- Conversación (vista del negocio) ---------- */
+function renderConv(){
+  var c=$("conv");c.innerHTML="";
+  if(!S.msgs.length)c.appendChild(el("p","empty","Aún no hay mensajes. Escribe algo desde el móvil del cliente."));
+  S.msgs.forEach(function(m){
+    var who=m.from==="user"?"Paciente":m.from==="human"?"Tú":"Asistente";
+    c.appendChild(el("div","cl"+(m.from==="user"?"":" out"),"<small>"+who+", "+m.time+"</small>"+m.html.replace(/<strong>/g,"<b>").replace(/<\/strong>/g,"</b><br>")));
+  });
+  c.scrollTop=c.scrollHeight;
+  var st=$("botState");st.className="state"+(S.paused?" paused":"");
+  st.innerHTML="<i></i>"+(S.paused?"Asistente en pausa: respondes tú":"El asistente responde solo");
+  $("pause").textContent=S.paused?"Reactivar asistente":"Pausar y responder yo";
+  var canWrite=S.paused&&S.windowOpen;
+  $("convInput").disabled=!canWrite;$("convBtn").disabled=!canWrite;
+  $("convInput").placeholder=!S.paused?"Pausa el asistente para escribir tú":(S.windowOpen?"Escribe al paciente":"Ventana de 24 h cerrada: solo se pueden enviar plantillas");
+}
+
+/* ---------- Resultados ---------- */
+function renderRes(){
+  var bot=S.appts.filter(function(a){return a.bot}).length,total=S.appts.length;
+  var k=$("kpis");k.innerHTML="";
+  [[total,"citas en los próximos 6 días"],[bot,"reservadas por chat, sin intervención"],[Math.round(bot/total*100)+" %","de la agenda llega por el asistente"],[S.liveMsgs,"mensajes atendidos en esta sesión"]]
+    .forEach(function(x){k.appendChild(el("div","kpi","<b>"+x[0]+"</b><span>"+x[1]+"</span>"))});
+  var cap0=BIZ.blocks.reduce(function(s,b){return s+b[1]-b[0]},0)*DAYS.length,occ=$("occ");occ.innerHTML="";
+  PROS.forEach(function(p){
+    var used=S.appts.filter(function(a){return a.pro===p.id}).reduce(function(s,a){return s+a.dur},0),pc=Math.round(used/cap0*100);
+    occ.appendChild(el("div","bar","<span>"+p.name+'</span><div><i style="width:'+pc+"%;background:"+p.c+'"></i></div><em>'+pc+" %</em>"))});
+  var sv=$("svc");sv.innerHTML="";
+  var counts=SERVICES.map(function(s){return{s:s,n:S.appts.filter(function(a){return a.svc===s.id}).length}}).sort(function(a,b){return b.n-a.n}),max=counts[0].n||1;
+  counts.forEach(function(c){sv.appendChild(el("div","bar",'<span title="'+c.s.name+'">'+c.s.name.split(" ").slice(0,2).join(" ")+'</span><div><i style="width:'+Math.round(c.n/max*100)+'%;background:var(--brand)"></i></div><em>'+c.n+"</em>"))});
+}
+
+/* ---------- Bajo el capó ---------- */
+function renderCapo(){
+  $("meter").innerHTML=
+    "<div><b>"+(S.windowOpen?"Abierta":"Cerrada")+"</b><span>Ventana de 24 h</span></div>"+
+    "<div><b>"+S.free+"</b><span>Mensajes gratis enviados</span></div>"+
+    "<div><b>"+S.paid+"</b><span>Plantillas de pago</span></div>"+
+    "<div><b>"+S.cost.toFixed(3).replace(".",",")+" €</b><span>Coste Meta de la sesión</span></div>";
+  var l=$("log");l.innerHTML="";
+  if(!S.log.length){l.appendChild(el("li","empty","Aquí aparecerá cada paso técnico en cuanto el cliente escriba."));return}
+  S.log.forEach(function(e){
+    var c=e.cost===0?'<span class="c free">gratis</span>':e.cost>0?'<span class="c paid">'+e.cost.toFixed(3).replace(".",",")+" €</span>":"<span></span>";
+    l.appendChild(el("li",null,"<time>"+e.t+'</time><span class="k">'+e.k+'</span><span class="d">'+e.d+"</span>"+c))});
+}
+
+/* ---------- Navegación ---------- */
+function setTab(t){
+  S.tab=t;[].forEach.call(document.querySelectorAll(".tabs button"),function(b){b.setAttribute("aria-selected",b.dataset.tab===t)});
+  ["agenda","conv","res","capo"].forEach(function(p){$("pane-"+p).classList.toggle("on",p===t)});
+}
+function setView(v){
+  document.body.dataset.view=v;$("vCliente").setAttribute("aria-pressed",v==="cliente");$("vNegocio").setAttribute("aria-pressed",v==="negocio");
+  if(v==="negocio"){S.pendingBadge=0;$("vBadge").hidden=true}
+}
+var toastT;
+function toast(txt,withBtn){
+  $("toastTxt").textContent=txt;$("toastBtn").style.display=withBtn?"":"none";
+  $("toast").classList.add("on");clearTimeout(toastT);toastT=setTimeout(function(){$("toast").classList.remove("on")},3800);
+}
+function bump(txt){
+  var narrow=window.matchMedia("(max-width:900px)").matches;
+  if(narrow&&document.body.dataset.view==="cliente"){S.pendingBadge++;$("vBadge").textContent=S.pendingBadge;$("vBadge").hidden=false;if(txt)toast(txt,true)}
+  if(txt&&S.tab!=="agenda"&&/agenda|hueco/.test(txt))setTab("agenda");
+}
+
+function start(){
+  init();$("msgs").innerHTML="";$("msgs").appendChild(el("div","day","Hoy"));
+  closeFlow();setTab("agenda");setView("cliente");
+  renderAgenda();renderConv();renderRes();renderCapo();
+  setQuick([{label:"Hola, quiero pedir cita",action:"book"},{label:"¿Cuánto cuesta una sesión?",action:"prices"},{label:"Me duele la espalda",action:"pain"}]);
+}
+
+/* ---------- Eventos ---------- */
+$("composer").addEventListener("submit",function(e){e.preventDefault();var v=$("input").value.trim();if(!v)return;$("input").value="";userSays(v)});
+$("flowClose").addEventListener("click",closeFlow);
+$("sheet").addEventListener("click",function(e){if(e.target===$("sheet"))closeFlow()});
+$("flowNext").addEventListener("click",flowNext);
+$("reset").addEventListener("click",start);
+$("remind").addEventListener("click",remind);
+$("vCliente").addEventListener("click",function(){setView("cliente")});
+$("vNegocio").addEventListener("click",function(){setView("negocio")});
+$("toastBtn").addEventListener("click",function(){setView("negocio");setTab("agenda");$("toast").classList.remove("on")});
+[].forEach.call(document.querySelectorAll(".tabs button"),function(b){b.addEventListener("click",function(){setTab(b.dataset.tab)})});
+$("pause").addEventListener("click",function(){
+  S.paused=!S.paused;log(S.paused?"En pausa":"Reactivado",S.paused?"Una persona del negocio toma la conversación":"El asistente vuelve a responder",null);renderConv();
+});
+$("convSend").addEventListener("submit",function(e){
+  e.preventDefault();var v=$("convInput").value.trim();if(!v||!S.paused||!S.windowOpen)return;$("convInput").value="";
+  push({from:"human",html:esc(v)});log("Manual","Respuesta escrita por el negocio, dentro de la ventana",0);
+});
+document.addEventListener("keydown",function(e){if(e.key==="Escape"&&S.flow)closeFlow()});
+
+start();
+})();
+</script>
+</body>
+</html>
